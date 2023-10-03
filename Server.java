@@ -4,19 +4,39 @@ import java.net.*;
 public class Server {
     public static void main(String[] args) {
         try {
-            ServerSocket serverSocket = new ServerSocket(<port>);
-            System.out.println("Server listening on port 8080...");
+            try (ServerSocket serverSocket = new ServerSocket(<port>)) {
+                System.out.println("Server listening on port <port>...");
 
-            while (true) {
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("Client connected: " + clientSocket.getInetAddress());
+                while (true) {
+                    Socket clientSocket = serverSocket.accept();
+                    System.out.println("Client connected: " + clientSocket.getInetAddress());
 
-                File zipFile = new File("<filename>.zip");
-                sendFile(clientSocket, zipFile);
-
-                clientSocket.close();
-                System.out.println("File sent to client.");
+                    ClientHandler clientHandler = new ClientHandler(clientSocket);
+                    Thread clientThread = new Thread(clientHandler);
+                    clientThread.start();
+                }
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+class ClientHandler implements Runnable {
+    private Socket clientSocket;
+
+    public ClientHandler(Socket clientSocket) {
+        this.clientSocket = clientSocket;
+    }
+
+    @Override
+    public void run() {
+        try {
+            File zipFile = new File("send.zip");
+            sendFile(clientSocket, zipFile);
+
+            clientSocket.close();
+            System.out.println("File sent to client: " + clientSocket.getInetAddress());
         } catch (IOException e) {
             e.printStackTrace();
         }
